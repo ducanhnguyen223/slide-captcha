@@ -1,0 +1,8 @@
+const SlidingCaptcha_vue_vue_type_style_index_0_scoped_48eb9a34_lang = ".captcha-container[data-v-48eb9a34]{align-items:center;display:flex;flex-direction:column;gap:1.5rem}.puzzle-grid[data-v-48eb9a34]{background:#374151;border-radius:8px;height:300px;overflow:hidden;position:relative;width:300px}.puzzle-row[data-v-48eb9a34]{display:flex}.puzzle-cell[data-v-48eb9a34]{background:#4b5563;border:1px solid hsla(0,0%,100%,.1);cursor:pointer;position:absolute;transition:transform .15s ease-out}.puzzle-cell.empty[data-v-48eb9a34]{background:transparent;cursor:default}.puzzle-cell[data-v-48eb9a34]:not(.empty):hover{border-color:#4ade80}.controls[data-v-48eb9a34]{display:flex;gap:1rem}.btn-reset[data-v-48eb9a34],.btn-verify[data-v-48eb9a34]{border:none;border-radius:8px;cursor:pointer;font-weight:600;padding:.75rem 1.5rem}.btn-verify[data-v-48eb9a34]{background:#4ade80;color:#1a1a2e}.btn-verify[data-v-48eb9a34]:disabled{cursor:not-allowed;opacity:.5}.btn-reset[data-v-48eb9a34]{background:#374151;color:#fff}.result[data-v-48eb9a34]{border-radius:8px;font-weight:500;padding:1rem 1.5rem}.result.success[data-v-48eb9a34]{background:#4ade8033;border:1px solid #4ade80;color:#4ade80}.result.error[data-v-48eb9a34]{background:#ef444433;border:1px solid #ef4444;color:#ef4444}";
+
+const SlidingCaptchaStyles_CO15P6du = [
+  SlidingCaptcha_vue_vue_type_style_index_0_scoped_48eb9a34_lang
+];
+
+export { SlidingCaptchaStyles_CO15P6du as default };
+//# sourceMappingURL=SlidingCaptcha-styles.CO15P6du.mjs.map

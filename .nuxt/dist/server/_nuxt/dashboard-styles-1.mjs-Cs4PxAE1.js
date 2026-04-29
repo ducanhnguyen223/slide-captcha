@@ -1,0 +1,5 @@
+const dashboard_vue_vue_type_style_index_0_scoped_6c5cb050_lang = ".dashboard-page[data-v-6c5cb050]{min-height:100vh}.header[data-v-6c5cb050]{padding:1.5rem 2rem}.back-link[data-v-6c5cb050]{color:#9ca3af;text-decoration:none}.back-link[data-v-6c5cb050]:hover{color:#fff}.header h1[data-v-6c5cb050]{margin-top:.5rem}.main[data-v-6c5cb050]{margin:0 auto;max-width:900px;padding:2rem}.error[data-v-6c5cb050],.loading[data-v-6c5cb050]{padding:3rem;text-align:center}.error[data-v-6c5cb050]{color:#ef4444}.stats[data-v-6c5cb050]{display:grid;gap:1.5rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.stat-card[data-v-6c5cb050]{background:#1f2937;border-radius:12px;padding:1.5rem;text-align:center}.stat-card h3[data-v-6c5cb050]{color:#9ca3af;font-size:.875rem;font-weight:500;margin-bottom:.5rem}.stat-value[data-v-6c5cb050]{color:#4ade80;font-size:2rem;font-weight:700}";
+export {
+  dashboard_vue_vue_type_style_index_0_scoped_6c5cb050_lang as default
+};
+//# sourceMappingURL=dashboard-styles-1.mjs-Cs4PxAE1.js.map
