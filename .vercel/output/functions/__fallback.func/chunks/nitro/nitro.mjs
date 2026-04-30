@@ -4076,7 +4076,7 @@ function _expandFromEnv(value) {
 const _inlineRuntimeConfig = {
   "app": {
     "baseURL": "/",
-    "buildId": "9606356c-5de0-407f-9813-c1f269fc53e1",
+    "buildId": "457d6df7-b1dd-4c1b-ae91-4e2aa6766b01",
     "buildAssetsDir": "/_nuxt/",
     "cdnURL": ""
   },
@@ -4545,13 +4545,18 @@ function defineNitroPlugin(def) {
 
 const _omfVB8uBmUYzJzxg70VedZeNo8OEcIv_TGotL2h2Js = defineNitroPlugin(async (nitroApp) => {
   const config = useRuntimeConfig();
-  if (!config.mongodbUri) {
-    console.warn("MONGODB_URI not configured");
+  const mongoUri = config.mongodbUri || process.env.MONGODB_URI;
+  if (!mongoUri) {
+    console.error("MONGODB_URI not configured");
     return;
   }
+  console.log("MongoDB connecting to:", mongoUri.replace(/:([^@]+)@/, ":****@"));
   try {
-    await mongoose.connect(config.mongodbUri);
-    console.log("MongoDB connected");
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 3e4,
+      socketTimeoutMS: 45e3
+    });
+    console.log("MongoDB connected successfully");
   } catch (error) {
     console.error("MongoDB connection error:", error);
   }
