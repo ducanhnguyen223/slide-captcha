@@ -76,7 +76,7 @@ export default defineEventHandler(async (event) => {
   })
   await challenge.save()
 
-  const token = \`csc_\${nanoid(24)}\`
+  const token = `csc_${nanoid(24)}`
 
   return { success: true, token }
 })
