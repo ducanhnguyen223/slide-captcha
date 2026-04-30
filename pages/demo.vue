@@ -5,14 +5,14 @@
       <h1>Demo</h1>
     </header>
     <main class="main">
-      <p class="instructions">Slide the puzzle pieces to restore the image</p>
-      <SlidingCaptcha />
+      <p class="instructions">Kéo thanh trượt để ghép hình pieces to restore the image</p>
+      <SliderCaptcha />
     </main>
   </div>
 </template>
 
 <script setup>
-import SlidingCaptcha from '~/components/SlidingCaptcha.vue'
+import SliderCaptcha from '~/components/SliderCaptcha.vue'
 </script>
 
 <style scoped>

@@ -1,11 +1,21 @@
-// server/api/captcha/verify.post.ts
 import { Challenge } from '~/server/models/Challenge'
-import { validateTiming, validatePathNaturalness, verifySolution } from '~/server/utils/validation'
+import { checkRateLimit } from '~/server/utils/rateLimit'
 import { nanoid } from 'nanoid'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  const { challengeId, solution, moves, totalDuration } = body
+  const { challengeId, sliderPosition, targetPosition, duration, moves } = body
+
+  const ip = getHeader(event, 'x-forwarded-for') ||
+    getHeader(event, 'x-real-ip') ||
+    'unknown'
+
+  if (!checkRateLimit(ip)) {
+    throw createError({
+      statusCode: 429,
+      statusMessage: 'Too many requests'
+    })
+  }
 
   const challenge = await Challenge.findOne({ challengeId })
 
@@ -21,62 +31,52 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 410, statusMessage: 'Challenge expired' })
   }
 
-  const timingResult = validateTiming(totalDuration)
-  if (!timingResult.valid) {
+  if (duration < 200) {
     challenge.attempts.push({
       timestamp: new Date(),
-      duration: totalDuration,
-      solved: false,
-      moveCount: moves?.length || 0
+      sliderPosition: sliderPosition || 0,
+      duration: duration || 0,
+      solved: false
     })
     await challenge.save()
-
-    return { success: false, reason: timingResult.reason }
+    return { success: false, reason: 'too_fast' }
   }
 
-  if (moves && moves.length > 0) {
-    for (const move of moves) {
-      if (move.path && move.path.length > 0) {
-        const pathResult = validatePathNaturalness(move.path)
-        if (!pathResult.valid) {
-          challenge.attempts.push({
-            timestamp: new Date(),
-            duration: totalDuration,
-            solved: false,
-            moveCount: moves.length
-          })
-          await challenge.save()
-
-          return { success: false, reason: pathResult.reason }
-        }
-      }
-    }
-  }
-
-  const isCorrect = verifySolution(challenge.initialState, solution)
-
-  if (!isCorrect) {
+  if (duration > 30000) {
     challenge.attempts.push({
       timestamp: new Date(),
-      duration: totalDuration,
-      solved: false,
-      moveCount: moves?.length || 0
+      sliderPosition: sliderPosition || 0,
+      duration: duration || 0,
+      solved: false
     })
     await challenge.save()
+    return { success: false, reason: 'timeout' }
+  }
 
-    return { success: false, reason: 'invalid_solution' }
+  const target = targetPosition || challenge.gapPosition || challenge.solution
+  const diff = Math.abs((sliderPosition || 0) - target)
+
+  if (diff > 5) {
+    challenge.attempts.push({
+      timestamp: new Date(),
+      sliderPosition: sliderPosition || 0,
+      duration: duration || 0,
+      solved: false
+    })
+    await challenge.save()
+    return { success: false, reason: 'position_mismatch' }
   }
 
   challenge.solved = true
   challenge.attempts.push({
     timestamp: new Date(),
-    duration: totalDuration,
-    solved: true,
-    moveCount: moves?.length || 0
+    sliderPosition: sliderPosition || 0,
+    duration: duration || 0,
+    solved: true
   })
   await challenge.save()
 
-  const token = `csc_${nanoid(24)}`
+  const token = \`csc_\${nanoid(24)}\`
 
-  return { success: true, token, solvedIn: totalDuration }
+  return { success: true, token }
 })
