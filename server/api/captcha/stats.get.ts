@@ -1,7 +1,12 @@
-// server/api/captcha/stats.get.ts
 import { Challenge } from '~/server/models/Challenge'
+import { ensureConnection } from '~/server/plugins/mongodb'
 
 export default defineEventHandler(async () => {
+  const conn = await ensureConnection()
+  if (!conn) {
+    throw createError({ statusCode: 503, statusMessage: 'Database unavailable' })
+  }
+
   const allChallenges = await Challenge.find({})
 
   const totalChallenges = allChallenges.length

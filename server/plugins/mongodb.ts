@@ -1,39 +1,54 @@
 import mongoose from 'mongoose'
 
-let cachedConnection: typeof mongoose | null = null
+let connectionReady = false
+let connectionPromise: Promise<typeof mongoose | null> | null = null
 
-export default defineNitroPlugin(async (nitroApp) => {
-  if (cachedConnection && mongoose.connection.readyState === 1) {
-    return
+async function ensureConnection(): Promise<typeof mongoose | null> {
+  if (mongoose.connection.readyState === 1) {
+    connectionReady = true
+    return mongoose
   }
+
+  if (connectionPromise) return connectionPromise
 
   const config = useRuntimeConfig()
   const mongoUri = config.mongodbUri || process.env.MONGODB_URI
 
   if (!mongoUri) {
     console.error('MONGODB_URI not configured')
-    return
+    return null
   }
 
   console.log('MongoDB connecting to:', mongoUri.replace(/:([^@]+)@/, ':****@'))
 
-  try {
-    mongoose.set('bufferCommands', false)
+  mongoose.set('bufferCommands', false)
 
-    cachedConnection = await mongoose.connect(mongoUri, {
-      serverSelectionTimeoutMS: 15000,
-      socketTimeoutMS: 45000,
-      maxPoolSize: 5,
-      minPoolSize: 1,
-    })
-    console.log('MongoDB connected successfully, state:', mongoose.connection.readyState)
-  } catch (error) {
+  connectionPromise = mongoose.connect(mongoUri, {
+    serverSelectionTimeoutMS: 15000,
+    socketTimeoutMS: 45000,
+    maxPoolSize: 5,
+    minPoolSize: 1,
+  }).then((conn) => {
+    console.log('MongoDB connected successfully')
+    connectionReady = true
+    return conn
+  }).catch((error) => {
     console.error('MongoDB connection error:', error)
-    cachedConnection = null
-  }
+    connectionPromise = null
+    return null
+  })
+
+  return connectionPromise
+}
+
+export default defineNitroPlugin(async (nitroApp) => {
+  await ensureConnection()
 
   nitroApp.hooks.hook('close', async () => {
-    cachedConnection = null
+    connectionReady = false
+    connectionPromise = null
     await mongoose.disconnect()
   })
 })
+
+export { ensureConnection }

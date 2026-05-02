@@ -1,6 +1,7 @@
 import { Challenge } from '~/server/models/Challenge'
 import { generateSliderPuzzle } from '~/server/utils/puzzle'
 import { checkRateLimit } from '~/server/utils/rateLimit'
+import { ensureConnection } from '~/server/plugins/mongodb'
 
 export default defineEventHandler(async (event) => {
   const ip = getHeader(event, 'x-forwarded-for') ||
@@ -12,6 +13,11 @@ export default defineEventHandler(async (event) => {
       statusCode: 429,
       statusMessage: 'Too many requests'
     })
+  }
+
+  const conn = await ensureConnection()
+  if (!conn) {
+    throw createError({ statusCode: 503, statusMessage: 'Database unavailable' })
   }
 
   const puzzle = generateSliderPuzzle()

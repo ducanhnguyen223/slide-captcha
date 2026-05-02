@@ -1,5 +1,6 @@
 import { Challenge } from '~/server/models/Challenge'
 import { checkRateLimit } from '~/server/utils/rateLimit'
+import { ensureConnection } from '~/server/plugins/mongodb'
 import { nanoid } from 'nanoid'
 
 export default defineEventHandler(async (event) => {
@@ -15,6 +16,11 @@ export default defineEventHandler(async (event) => {
       statusCode: 429,
       statusMessage: 'Too many requests'
     })
+  }
+
+  const conn = await ensureConnection()
+  if (!conn) {
+    throw createError({ statusCode: 503, statusMessage: 'Database unavailable' })
   }
 
   const challenge = await Challenge.findOne({ challengeId })
