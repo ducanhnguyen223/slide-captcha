@@ -7,10 +7,13 @@ export async function ensureConnection(): Promise<boolean> {
     return true
   }
 
-  const mongoUri = process.env.MONGODB_URI || useRuntimeConfig().mongodbUri
+  // Must reference process.env.MONGODB_URI directly in server code
+  // so Vercel injects it into serverless functions at runtime.
+  // useRuntimeConfig() evaluates at build time on Vercel and returns "".
+  const mongoUri = process.env.MONGODB_URI
 
   if (!mongoUri) {
-    console.error('MONGODB_URI not configured')
+    console.error('MONGODB_URI not configured. Make sure it is set in Vercel Environment Variables.')
     return false
   }
 
