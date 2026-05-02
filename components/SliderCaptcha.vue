@@ -1,105 +1,189 @@
 <template>
   <div class="slider-captcha">
-    <div class="captcha-wrapper">
-      <!-- Background image -->
-      <div
-        class="image-container"
-        :style="{ width: `${width}px`, height: `${height}px` }"
-      >
-        <div
-          class="background-image"
-          :style="{
-            backgroundImage: `url(${imageUrl})`,
-            backgroundSize: `${width}px ${height}px`
-          }"
-        ></div>
+    <div class="captcha-card">
+      <!-- Image area -->
+      <div class="image-area" :style="{ width: `${imgWidth}px`, height: `${imgHeight}px` }">
+        <canvas
+          ref="bgCanvas"
+          :width="imgWidth"
+          :height="imgHeight"
+          class="bg-canvas"
+        />
+        <canvas
+          ref="pieceCanvas"
+          :width="imgWidth"
+          :height="imgHeight"
+          class="piece-canvas"
+          :style="{ clipPath: `inset(0 0 0 ${sliderLeft}px)` }"
+        />
 
-        <!-- Gap overlay (dark area) -->
-        <div
-          class="gap-overlay"
-          :style="{
-            left: `${gapPosition}px`,
-            width: `${pieceWidth}px`,
-            height: `${height}px`
-          }"
-        ></div>
+        <button class="btn-refresh" @click="reset" title="Làm mới">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
 
-        <!-- Slider handle -->
+        <div v-if="result" :class="['overlay-result', result.success ? 'success' : 'fail']">
+          <span v-if="result.success">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Xác thực thành công
+          </span>
+          <span v-else>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            {{ result.reason || 'Thử lại' }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Slider track -->
+      <div class="slider-track" :style="{ width: `${imgWidth}px` }">
+        <div class="track-bg">
+          <span class="track-hint">{{ result?.success ? '' : 'Kéo thanh trượt để ghép hình' }}</span>
+          <div class="track-fill" :style="{ width: `${sliderLeft}px` }"></div>
+        </div>
+
         <div
-          class="slider-handle"
-          :style="{
-            left: `${sliderPosition}px`,
-            width: `${handleWidth}px`,
-            height: `${height}px`
-          }"
+          class="slider-thumb"
+          :style="{ left: `${sliderLeft}px` }"
           @mousedown="startDrag"
           @touchstart.prevent="startDrag"
         >
-          <div class="handle-icon">→</div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </div>
-
-        <!-- Track lines -->
-        <div class="track-line" :style="{ left: `${gapPosition}px`, width: `${pieceWidth}px` }"></div>
-      </div>
-
-      <p class="hint">Kéo thanh trượt sang phải để ghép hình</p>
-
-      <div v-if="result" :class="['result', result.success ? 'success' : 'error']">
-        <span v-if="result.success">✓ Xác thực thành công!</span>
-        <span v-else>✗ {{ result.reason || 'Thử lại' }}</span>
       </div>
     </div>
-
-    <button v-if="result && !result.success" @click="reset" class="btn-reset">
-      Thử lại
-    </button>
   </div>
 </template>
 
 <script setup lang="ts">
-const width = ref(320)
-const height = ref(160)
-const pieceWidth = ref(40)
-const handleWidth = ref(44)
-const gapPosition = ref(0)
-const sliderPosition = ref(0)
-const imageUrl = ref('')
+const imgWidth = 340
+const imgHeight = 190
+const pieceSize = 44
+const pieceRadius = 8
+
+const bgCanvas = ref<HTMLCanvasElement>()
+const pieceCanvas = ref<HTMLCanvasElement>()
+
 const challengeId = ref('')
+const gapX = ref(0)
+const gapY = ref(0)
+const sliderLeft = ref(0)
+const imageSrc = ref('')
 
 const isDragging = ref(false)
-const startX = ref(0)
-const startSliderX = ref(0)
+const dragStartX = ref(0)
+const dragStartLeft = ref(0)
 const dragStartTime = ref(0)
 
 const result = ref<{ success: boolean; reason?: string } | null>(null)
-const verifying = ref(false)
+const loading = ref(true)
 
-const maxSlider = computed(() => width.value - handleWidth.value)
+const maxSlider = computed(() => imgWidth - pieceSize)
 
 async function createChallenge() {
+  loading.value = true
+  result.value = null
+  sliderLeft.value = 0
+
   try {
     const res = await $fetch<any>('/api/captcha/create', { method: 'POST' })
     challengeId.value = res.challengeId
-    imageUrl.value = res.imageUrl || `https://picsum.photos/seed/${Date.now()}/320/160`
+    imageSrc.value = res.imageUrl
+    gapX.value = res.gapPosition || 0
+    gapY.value = res.gapY || Math.floor(Math.random() * (imgHeight - pieceSize * 2) + pieceSize)
 
-    // Random gap between 30% and 70%
-    const minGap = Math.floor(width.value * 0.3)
-    const maxGap = Math.floor(width.value * 0.7) - pieceWidth.value
-    gapPosition.value = Math.floor(Math.random() * (maxGap - minGap) + minGap)
-
-    sliderPosition.value = 0
-    result.value = null
+    await drawPuzzle()
   } catch (e) {
     console.error('Failed to create challenge:', e)
+  } finally {
+    loading.value = false
   }
 }
 
+async function drawPuzzle() {
+  const img = new Image()
+  img.crossOrigin = 'anonymous'
+  img.src = imageSrc.value
+
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve()
+    img.onerror = () => {
+      // Retry with cache-bust
+      img.src = imageSrc.value + '?t=' + Date.now()
+      img.onload = () => resolve()
+      img.onerror = () => reject(new Error('Image load failed'))
+    }
+  })
+
+  // Draw background with gap hole
+  const bg = bgCanvas.value!
+  const bgCtx = bg.getContext('2d')!
+  bgCtx.drawImage(img, 0, 0, imgWidth, imgHeight)
+
+  // Cut gap hole
+  bgCtx.save()
+  bgCtx.fillStyle = 'rgba(0,0,0,0.5)'
+  bgCtx.strokeStyle = 'rgba(255,255,255,0.8)'
+  bgCtx.lineWidth = 2
+  drawPuzzlePath(bgCtx, gapX.value, gapY.value)
+  bgCtx.fill()
+  bgCtx.stroke()
+  bgCtx.restore()
+
+  // Draw piece on piece canvas
+  const pc = pieceCanvas.value!
+  const pcCtx = pc.getContext('2d')!
+  pcCtx.clearRect(0, 0, imgWidth, imgHeight)
+  pcCtx.save()
+
+  // Clip to puzzle shape
+  drawPuzzlePath(pcCtx, gapX.value, gapY.value)
+  pcCtx.clip()
+
+  // Draw the piece at the gap position (it will be revealed by slider clipPath)
+  pcCtx.drawImage(img, 0, 0, imgWidth, imgHeight)
+
+  // Add border
+  pcCtx.restore()
+  pcCtx.save()
+  pcCtx.strokeStyle = 'rgba(255,255,255,0.9)'
+  pcCtx.lineWidth = 2
+  pcCtx.shadowColor = 'rgba(0,0,0,0.4)'
+  pcCtx.shadowBlur = 6
+  pcCtx.shadowOffsetX = 2
+  pcCtx.shadowOffsetY = 2
+  drawPuzzlePath(pcCtx, gapX.value, gapY.value)
+  pcCtx.stroke()
+  pcCtx.restore()
+}
+
+function drawPuzzlePath(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  const s = pieceSize
+  const r = pieceRadius
+
+  ctx.beginPath()
+  // Top edge
+  ctx.moveTo(x, y)
+  ctx.lineTo(x + s * 0.4, y)
+  // Top bump (tab)
+  ctx.arc(x + s * 0.5, y, r, Math.PI, 0, false)
+  ctx.lineTo(x + s, y)
+  // Right edge
+  ctx.lineTo(x + s, y + s * 0.4)
+  // Right bump (tab)
+  ctx.arc(x + s, y + s * 0.5, r, -Math.PI / 2, Math.PI / 2, false)
+  ctx.lineTo(x + s, y + s)
+  // Bottom edge
+  ctx.lineTo(x, y + s)
+  // Left edge
+  ctx.lineTo(x, y)
+  ctx.closePath()
+}
+
 function startDrag(e: MouseEvent | TouchEvent) {
-  if (result.value?.success) return
+  if (result.value?.success || loading.value) return
 
   isDragging.value = true
-  startX.value = 'touches' in e ? e.touches[0].clientX : e.clientX
-  startSliderX.value = sliderPosition.value
+  dragStartX.value = 'touches' in e ? e.touches[0].clientX : e.clientX
+  dragStartLeft.value = sliderLeft.value
   dragStartTime.value = Date.now()
 
   document.addEventListener('mousemove', onDrag)
@@ -113,10 +197,8 @@ function onDrag(e: MouseEvent | TouchEvent) {
   e.preventDefault()
 
   const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
-  const delta = clientX - startX.value
-  const newPos = Math.max(0, Math.min(maxSlider.value, startSliderX.value + delta))
-
-  sliderPosition.value = newPos
+  const delta = clientX - dragStartX.value
+  sliderLeft.value = Math.max(0, Math.min(maxSlider.value, dragStartLeft.value + delta))
 }
 
 async function endDrag() {
@@ -129,49 +211,36 @@ async function endDrag() {
   document.removeEventListener('touchend', endDrag)
 
   const duration = Date.now() - dragStartTime.value
-  const diff = Math.abs(sliderPosition.value - gapPosition.value)
-
-  // Anti-cheat: too fast
-  if (duration < 200) {
-    result.value = { success: false, reason: 'Quá nhanh, thử lại' }
-    sliderPosition.value = 0
-    return
-  }
-
-  // Check if close enough (±5px)
-  if (diff <= 5) {
-    sliderPosition.value = gapPosition.value
-    await verify(true, duration)
-  } else {
-    result.value = { success: false, reason: 'Chưa khớp, thử lại' }
-    sliderPosition.value = 0
-  }
-}
-
-async function verify(success: boolean, duration: number) {
-  verifying.value = true
 
   try {
     const res = await $fetch<any>('/api/captcha/verify', {
       method: 'POST',
       body: {
         challengeId: challengeId.value,
-        sliderPosition: sliderPosition.value,
-        targetPosition: gapPosition.value,
-        duration: duration,
-        moves: [{ from: 0, to: sliderPosition.value, duration }]
+        sliderPosition: sliderLeft.value,
+        targetPosition: gapX.value,
+        duration,
+        moves: [{ from: 0, to: sliderLeft.value, duration }]
       }
     })
     result.value = res
+    if (res.success) {
+      sliderLeft.value = gapX.value
+    } else {
+      setTimeout(() => {
+        sliderLeft.value = 0
+      }, 800)
+    }
   } catch (e: any) {
     result.value = { success: false, reason: e.data?.message || 'Lỗi xác thực' }
-  } finally {
-    verifying.value = false
+    setTimeout(() => {
+      sliderLeft.value = 0
+    }, 800)
   }
 }
 
 function reset() {
-  sliderPosition.value = 0
+  sliderLeft.value = 0
   result.value = null
   createChallenge()
 }
@@ -184,126 +253,148 @@ onMounted(() => {
 <style scoped>
 .slider-captcha {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
+  justify-content: center;
 }
 
-.captcha-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.captcha-card {
+  background: #1f2937;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  user-select: none;
 }
 
-.image-container {
+.image-area {
   position: relative;
-  background: #1a1a2e;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  background: #111827;
 }
 
-.background-image {
+.bg-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.piece-canvas {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-}
-
-.gap-overlay {
-  position: absolute;
-  top: 0;
-  background: #1a1a2e;
-  border-left: 2px solid #4ade80;
-  border-right: 2px solid #4ade80;
-  box-shadow: 0 0 15px rgba(74, 222, 128, 0.3);
-}
-
-.slider-handle {
-  position: absolute;
-  top: 0;
-  background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
-  border-radius: 0 4px 4px 0;
-  cursor: grab;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
-  z-index: 10;
-  transition: transform 0.05s ease-out;
-}
-
-.slider-handle:active {
-  cursor: grabbing;
-}
-
-.handle-icon {
-  color: #1a1a2e;
-  font-size: 1.25rem;
-  font-weight: bold;
-}
-
-.track-line {
-  position: absolute;
-  top: 0;
-  height: 100%;
-  border: 2px dashed rgba(74, 222, 128, 0.5);
-  border-radius: 4px;
   pointer-events: none;
 }
 
-.hint {
-  color: #9ca3af;
-  font-size: 0.875rem;
-  text-align: center;
-  margin: 0;
+.btn-refresh {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  z-index: 5;
+}
+.btn-refresh:hover {
+  background: rgba(0, 0, 0, 0.7);
 }
 
-.result {
-  padding: 0.75rem 1.5rem;
+.overlay-result {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
   border-radius: 8px;
-  font-weight: 500;
-  text-align: center;
   animation: fadeIn 0.3s ease;
+  z-index: 10;
+}
+.overlay-result.success {
+  background: rgba(34, 197, 94, 0.85);
+  color: #fff;
+}
+.overlay-result.fail {
+  background: rgba(239, 68, 68, 0.85);
+  color: #fff;
+  animation: fadeIn 0.3s ease, shake 0.3s ease;
 }
 
-.result.success {
-  background: rgba(74, 222, 128, 0.15);
-  color: #4ade80;
-  border: 1px solid #4ade80;
+/* Slider track */
+.slider-track {
+  position: relative;
+  height: 40px;
+  margin-top: 12px;
 }
 
-.result.error {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border: 1px solid #ef4444;
-  animation: shake 0.3s ease;
+.track-bg {
+  position: absolute;
+  inset: 0;
+  background: #374151;
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.track-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+  border-radius: 20px 0 0 20px;
+  transition: none;
+}
+
+.track-hint {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  z-index: 1;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.slider-thumb {
+  position: absolute;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  background: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 5;
+  transform: translateX(-50%);
+  transition: none;
+  color: #374151;
+}
+.slider-thumb:active {
+  cursor: grabbing;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
-
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}
-
-.btn-reset {
-  padding: 0.5rem 1.5rem;
-  background: #374151;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: background 0.2s;
-}
-
-.btn-reset:hover {
-  background: #4b5563;
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
 }
 </style>

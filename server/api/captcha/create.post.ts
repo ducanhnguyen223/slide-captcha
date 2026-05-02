@@ -1,12 +1,11 @@
-// server/api/captcha/create.post.ts
 import { Challenge } from '~/server/models/Challenge'
-import { generatePuzzle } from '~/server/utils/puzzle'
+import { generateSliderPuzzle } from '~/server/utils/puzzle'
 import { checkRateLimit } from '~/server/utils/rateLimit'
 
 export default defineEventHandler(async (event) => {
-  const ip = getHeader(event, 'x-forwarded-for') || 
-             getHeader(event, 'x-real-ip') || 
-             'unknown'
+  const ip = getHeader(event, 'x-forwarded-for') ||
+    getHeader(event, 'x-real-ip') ||
+    'unknown'
 
   if (!checkRateLimit(ip)) {
     throw createError({
@@ -15,13 +14,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const puzzle = generatePuzzle()
+  const puzzle = generateSliderPuzzle()
 
   const challenge = new Challenge({
     challengeId: puzzle.challengeId,
     imageUrl: puzzle.imageUrl,
-    gridSize: puzzle.gridSize,
-    initialState: puzzle.initialState,
+    gapPosition: puzzle.gapPosition,
+    gapY: puzzle.gapY,
     solution: puzzle.solution,
     createdAt: puzzle.createdAt,
     expiresAt: puzzle.expiresAt,
@@ -34,7 +33,8 @@ export default defineEventHandler(async (event) => {
   return {
     challengeId: puzzle.challengeId,
     imageUrl: puzzle.imageUrl,
-    grid: puzzle.initialState,
+    gapPosition: puzzle.gapPosition,
+    gapY: puzzle.gapY,
     expiresAt: puzzle.expiresAt.toISOString()
   }
 })

@@ -4,7 +4,7 @@ import { nanoid } from 'nanoid'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody(event)
-  const { challengeId, sliderPosition, targetPosition, duration, moves } = body
+  const { challengeId, sliderPosition, targetPosition, duration } = body
 
   const ip = getHeader(event, 'x-forwarded-for') ||
     getHeader(event, 'x-real-ip') ||
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
       solved: false
     })
     await challenge.save()
-    return { success: false, reason: 'too_fast' }
+    return { success: false, reason: 'Quá nhanh, thử lại' }
   }
 
   if (duration > 30000) {
@@ -50,10 +50,10 @@ export default defineEventHandler(async (event) => {
       solved: false
     })
     await challenge.save()
-    return { success: false, reason: 'timeout' }
+    return { success: false, reason: 'Quá chậm, thử lại' }
   }
 
-  const target = targetPosition || challenge.gapPosition || challenge.solution
+  const target = challenge.gapPosition || challenge.solution
   const diff = Math.abs((sliderPosition || 0) - target)
 
   if (diff > 5) {
@@ -64,7 +64,7 @@ export default defineEventHandler(async (event) => {
       solved: false
     })
     await challenge.save()
-    return { success: false, reason: 'position_mismatch' }
+    return { success: false, reason: 'Chưa khớp, thử lại' }
   }
 
   challenge.solved = true

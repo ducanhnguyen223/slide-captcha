@@ -1,11 +1,10 @@
 <template>
   <div class="demo-page">
     <header class="header">
-      <NuxtLink to="/" class="back-link">← Back</NuxtLink>
-      <h1>Demo</h1>
+      <NuxtLink to="/" class="back-link">← Trang chủ</NuxtLink>
+      <h1>Demo Slider CAPTCHA</h1>
     </header>
     <main class="main">
-      <p class="instructions">Kéo thanh trượt để ghép hình pieces to restore the image</p>
       <SliderCaptcha />
     </main>
   </div>
@@ -20,7 +19,6 @@ import SliderCaptcha from '~/components/SliderCaptcha.vue'
 .header { padding: 1.5rem 2rem; }
 .back-link { color: #9ca3af; text-decoration: none; }
 .back-link:hover { color: #fff; }
-.header h1 { margin-top: 0.5rem; }
-.main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 2rem; }
-.instructions { color: #9ca3af; margin-bottom: 2rem; }
+.header h1 { margin-top: 0.5rem; font-size: 1.5rem; }
+.main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
 </style>

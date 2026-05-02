@@ -4,6 +4,7 @@ export interface IChallenge extends Document {
   challengeId: string
   imageUrl: string
   gapPosition: number
+  gapY: number
   solution: number
   createdAt: Date
   expiresAt: Date
@@ -20,6 +21,7 @@ const ChallengeSchema = new Schema<IChallenge>({
   challengeId: { type: String, required: true, unique: true, index: true },
   imageUrl: { type: String, required: true },
   gapPosition: { type: Number, required: true },
+  gapY: { type: Number, default: 0 },
   solution: { type: Number, required: true },
   createdAt: { type: Date, default: Date.now },
   expiresAt: { type: Date, required: true, index: { expireAfterSeconds: 300 } },
