@@ -7,27 +7,36 @@ export async function ensureConnection(): Promise<boolean> {
     return true
   }
 
-  // Must reference process.env.MONGODB_URI directly in server code
-  // so Vercel injects it into serverless functions at runtime.
-  // useRuntimeConfig() evaluates at build time on Vercel and returns "".
   const mongoUri = process.env.MONGODB_URI
 
   if (!mongoUri) {
-    console.error('MONGODB_URI not configured. Make sure it is set in Vercel Environment Variables.')
+    console.error('MONGODB_URI not configured')
     return false
   }
 
-  console.log('MongoDB connecting...')
+  mongoose.set('bufferCommands', false)
+
+  // If already connecting, wait for it
+  if (mongoose.connection.readyState === 2) {
+    await new Promise<void>((resolve) => {
+      mongoose.connection.once('open', () => resolve())
+      mongoose.connection.once('error', () => resolve())
+    })
+    if (mongoose.connection.readyState === 1) {
+      isConnected = true
+      return true
+    }
+  }
 
   try {
-    const conn = await mongoose.connect(mongoUri, {
+    await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 15000,
       socketTimeoutMS: 45000,
       maxPoolSize: 5,
     })
 
-    isConnected = conn.connection.readyState === 1
-    console.log('MongoDB connected, readyState:', conn.connection.readyState)
+    isConnected = mongoose.connection.readyState === 1
+    console.log('MongoDB connected, readyState:', mongoose.connection.readyState)
     return isConnected
   } catch (error) {
     console.error('MongoDB connection error:', error)
@@ -36,6 +45,4 @@ export async function ensureConnection(): Promise<boolean> {
   }
 }
 
-export default defineNitroPlugin(() => {
-  mongoose.set('bufferCommands', false)
-})
+export default defineNitroPlugin(() => {})

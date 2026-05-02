@@ -18,8 +18,8 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const conn = await ensureConnection()
-  if (!conn) {
+  const connected = await ensureConnection()
+  if (!connected) {
     throw createError({ statusCode: 503, statusMessage: 'Database unavailable' })
   }
 
