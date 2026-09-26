@@ -8,8 +8,8 @@
     <main class="main">
       <section class="hero">
         <div class="hero-content">
-          <h2>Fun & Secure CAPTCHA</h2>
-          <p>Replace boring text CAPTCHAs with engaging sliding puzzles that users actually enjoy.</p>
+          <h2>Sliding CAPTCHA prototype</h2>
+          <p>Explore an experimental slider challenge flow. It has not been evaluated as a production anti-bot control.</p>
           <div class="cta-buttons">
             <NuxtLink to="/demo" class="btn btn-primary">Try Demo</NuxtLink>
             <NuxtLink to="/dashboard" class="btn btn-secondary">View Stats</NuxtLink>
@@ -19,16 +19,16 @@
 
       <section class="features">
         <div class="feature">
-          <h3>Anti-Bot Protection</h3>
-          <p>Advanced behavior analysis detects automated scripts with 99%+ accuracy.</p>
+          <h3>Challenge flow</h3>
+          <p>Create a short-lived slider challenge and submit a position for a demo verification response.</p>
         </div>
         <div class="feature">
           <h3>User Friendly</h3>
           <p>Fun puzzles instead of distorted text. Better user experience.</p>
         </div>
         <div class="feature">
-          <h3>Easy Integration</h3>
-          <p>Simple API to integrate into any website or application.</p>
+          <h3>Prototype only</h3>
+          <p>The create response currently exposes the target coordinate. Do not use this demo to protect a production form or account.</p>
         </div>
       </section>
     </main>
