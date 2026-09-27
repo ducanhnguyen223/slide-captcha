@@ -1,4 +1,12 @@
-.vercel
-
+# Environment files and secrets; keep sanitized examples explicitly named.
 .env
-.env.production
+.env.*
+!.env.example
+!.env.*.example
+
+# Local dependencies, generated build output, and OS metadata.
+node_modules/
+.nuxt/
+.output/
+.vercel/
+.DS_Store
